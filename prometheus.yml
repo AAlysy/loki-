@@ -1,23 +1,32 @@
 global:
-  # L'intervalle de temps entre deux "scrapes".
-  scrape_interval: 15s 
-  # L'intervalle de temps pour l'évaluation des règles d'alerte.
-  evaluation_interval: 15s 
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
-  # Tâche par défaut pour surveiller l'instance de Prometheus elle-même.
+  # Prometheus lui-même
   - job_name: 'prometheus'
-    # Récupérer les métriques de cette cible statique.
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['prometheus:9090']
 
-  # Surveiller node-exporter
+  # Grafana (nécessite GF_METRICS_ENABLED=true)
+  - job_name: 'grafana'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['grafana:3000']
+
+  # Loki
+  - job_name: 'loki'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['loki:3100']
+
+  # Promtail
+  - job_name: 'promtail'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['promtail:9080']
+
+  # Node exporter (métriques système)
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
-    scrape_interval: 5s
-
-  # Surveiller Loki
-  - job_name: 'loki'
-    static_configs:
-      - targets: ['loki:3100']
