@@ -76,17 +76,16 @@ services:
     container_name: tempo
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
-      - ./tempo.yaml:/etc/tempo.yaml:ro   # ← assure-toi que c'est bien un fichier
-      - ./tempo-data:/var/tempo           # stockage local (optionnel)
+      - ./tempo.yaml:/etc/tempo.yaml:ro   
+      - ./tempo-data:/var/tempo           
     ports:
-      - "3200:3200"   # HTTP query (Grafana)
-      - "4317:4317"   # OTLP gRPC (Collector / apps)
-      - "4318:4318"   # OTLP HTTP (Collector / apps)
-      - "14268:14268" # endpoint Jaeger (optionnel)
+      - "3200:3200"   
+      - "4317:4317"   
+      - "4318:4318"   
+      - "14268:14268" 
     networks:
       - observability
 
-  # ✅ OpenTelemetry Collector — reçoit OTLP et forward vers Tempo
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
@@ -98,23 +97,24 @@ services:
     networks:
       - observability
 
-  # ✅ Générateur de traces pour démo éducative (OTLP → Collector)
   telemetrygen:
     image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
     container_name: telemetrygen
-    command: [
-      "traces",
-      "--otlp-endpoint=otel-collector:4317",
-      "--otlp-insecure=true",
-      "--duration=0s",          # 0s = en continu
-      "--rate=5",               # 5 traces/s
-      "--services=serviceA,serviceB",
-      "--span-duration=40ms"
-    ]
+    command:
+      - traces
+      - --otlp-endpoint=otel-collector:4317
+      - --otlp-insecure=true
+      - --duration=inf       
+      - --rate=5
+      - --service=serviceA   
+      - --span-duration=40ms
     depends_on:
       - otel-collector
     networks:
       - observability
+    restart: unless-stopped
+
+
 
 
 
