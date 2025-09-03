@@ -33,11 +33,10 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      # Configuration SMTP (Gmail)
       - GF_SMTP_ENABLED=true
       - GF_SMTP_HOST=smtp.gmail.com:587
       - GF_SMTP_USER=technotechsn@gmail.com
-      - GF_SMTP_PASSWORD=yxizcpeaznjcmuho  
+      - GF_SMTP_PASSWORD=yxizcpeaznjcmuho
       - GF_SMTP_FROM_ADDRESS=technotechsn@gmail.com
       - GF_SMTP_FROM_NAME=Grafana Alerts
     volumes:
@@ -47,6 +46,7 @@ services:
       - observability
     depends_on:
       - loki
+      - tempo
 
   prometheus:
     image: prom/prometheus:latest
@@ -71,10 +71,57 @@ services:
     networks:
       - observability
 
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro   # ← assure-toi que c'est bien un fichier
+      - ./tempo-data:/var/tempo           # stockage local (optionnel)
+    ports:
+      - "3200:3200"   # HTTP query (Grafana)
+      - "4317:4317"   # OTLP gRPC (Collector / apps)
+      - "4318:4318"   # OTLP HTTP (Collector / apps)
+      - "14268:14268" # endpoint Jaeger (optionnel)
+    networks:
+      - observability
+
+  # ✅ OpenTelemetry Collector — reçoit OTLP et forward vers Tempo
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: [ "--config=/etc/otel-collector.yaml" ]
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+    depends_on:
+      - tempo
+    networks:
+      - observability
+
+  # ✅ Générateur de traces pour démo éducative (OTLP → Collector)
+  telemetrygen:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:latest
+    container_name: telemetrygen
+    command: [
+      "traces",
+      "--otlp-endpoint=otel-collector:4317",
+      "--otlp-insecure=true",
+      "--duration=0s",          # 0s = en continu
+      "--rate=5",               # 5 traces/s
+      "--services=serviceA,serviceB",
+      "--span-duration=40ms"
+    ]
+    depends_on:
+      - otel-collector
+    networks:
+      - observability
+
+
 
 networks:
-  observability:
+  observability: {}
 
 volumes:
-  grafana_data:
-  prometheus_data:
+  grafana_data: {}
+  prometheus_data: {}
+  tempo_data: {}
