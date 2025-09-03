@@ -3,15 +3,16 @@ server:
 
 distributor:
   receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
     jaeger:
       protocols:
         thrift_http:
           endpoint: 0.0.0.0:14268
-    otlp:
-      protocols:
-        http:
-          endpoint: 0.0.0.0:4318
-
 
 storage:
   trace:
